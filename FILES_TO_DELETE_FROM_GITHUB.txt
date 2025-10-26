@@ -1,0 +1,90 @@
+# V2 FILES TO DELETE FROM GITHUB REPO
+# These files conflict with V3 and should be removed
+
+## Old V2 Screener Files (DELETE THESE)
+screener_combined.py
+screener_ema.py
+screener_ma_cross.py
+screener_ma_pullback.py
+screener_supertrend.py
+screener_triple_ema_pullback.py
+
+## Old V2 Documentation (DELETE THESE)
+ALERT_SETUP_GUIDE.md
+CHANGES_SUMMARY.md
+DEPLOYMENT_GUIDE.md
+PRODUCTION_READY_VERIFICATION.md
+RENDER_DEPLOYMENT_GUIDE.md
+TRIPLE_EMA_PULLBACK_README.md
+UPLOAD_CHECKLIST.txt
+V2_CHANGES_README.md
+CUsersrayogDocumentsOrganizedConversationHistory2025Tradinganalysis2025-10-08_Forex_Screener_Render_Deployment_Success.md
+
+## Old V2 Config Files (DELETE THESE)
+pythonanywhere_wsgi.py
+render.yaml
+
+## Old directories (DELETE IF PRESENT)
+__pycache__/
+notifications/ (folder - we have notifications.py file instead)
+outputs/
+
+## KEEP THESE V3 FILES:
+# Main app
+app.py
+screener_v3.py
+notifications.py
+
+# Config
+config/
+  - __init__.py
+  - api_config.py
+  - instruments.py
+  - strategies.py
+
+# Connectors
+connectors/
+  - __init__.py
+  - oanda_connector.py
+  - yfinance_connector.py
+
+# Strategies
+strategies/
+  - __init__.py
+  - sma_strategy.py
+  - ma_cross_strategy.py
+  - ma_pullback_strategy.py
+  - supertrend_mtf.py
+
+# Utils
+utils/
+  - __init__.py
+  - confidence_scorer.py
+  - risk_calculator.py
+  - technical_analysis.py
+  - news_fetcher.py
+
+# Templates
+templates/
+  - __init__.py
+  - dashboard.html
+
+# Static (empty but needed)
+static/
+  - __init__.py
+
+# Deployment files
+requirements.txt
+runtime.txt
+Procfile
+.gitignore
+.env.example
+
+# Documentation
+README.md
+DEPLOYMENT.md
+CHANGES_V2_TO_V3.md
+PROJECT_SUMMARY.md
+
+# Database
+database_schema.sql
