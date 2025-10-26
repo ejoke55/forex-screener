@@ -18,7 +18,7 @@ from strategies.ma_pullback_strategy import MAPullbackStrategy
 from strategies.supertrend_mtf import SupertrendStrategy
 from utils.confidence_scorer import ConfidenceScorer
 from utils.risk_calculator import RiskCalculator
-from utils.technical_analyzer import TechnicalAnalyzer
+from utils.technical_analysis import TechnicalAnalyzer
 
 
 class V3ForexScreener:
