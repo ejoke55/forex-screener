@@ -28,6 +28,11 @@ latest_results = {
     'scan_count': 0
 }
 
+# Alert tracking to prevent spam
+# Format: {instrument: {'signal': 'BUY', 'confidence': 75, 'timestamp': datetime}}
+alert_history = {}
+ALERT_COOLDOWN_MINUTES = 60  # Only re-alert same signal after 1 hour
+
 # Initialize components
 screener = V3ForexScreener()
 news_fetcher = NewsFetcher()
@@ -75,15 +80,60 @@ def background_scanner():
             time.sleep(60)  # Wait 1 minute before retry
 
 def send_high_confidence_alerts(results):
-    """Send Telegram alerts for signals above confidence threshold"""
+    """Send Telegram alerts for signals above confidence threshold (with deduplication)"""
+    current_time = datetime.now()
+
     for instrument, data in results.items():
         confidence = data.get('best_confidence', 0)
         signal = data.get('overall_signal', 'NEUTRAL')
 
+        # Only alert on BUY/SELL signals above confidence threshold
         if confidence >= MIN_CONFIDENCE_THRESHOLD and ('BUY' in signal or 'SELL' in signal):
-            # Format alert message
-            message = format_alert_message(instrument, data)
-            telegram.send_message(message)
+
+            # Check if we should send alert (avoid spam)
+            should_alert = False
+
+            if instrument not in alert_history:
+                # First time seeing this instrument - send alert
+                should_alert = True
+                reason = "NEW"
+            else:
+                last_alert = alert_history[instrument]
+                last_signal = last_alert['signal']
+                last_confidence = last_alert['confidence']
+                last_time = last_alert['timestamp']
+                time_diff_minutes = (current_time - last_time).total_seconds() / 60
+
+                # Alert if signal changed (BUY → SELL or vice versa)
+                if signal != last_signal:
+                    should_alert = True
+                    reason = "SIGNAL_CHANGE"
+
+                # Alert if confidence increased significantly (+15% or more)
+                elif confidence >= last_confidence + 15:
+                    should_alert = True
+                    reason = "CONFIDENCE_BOOST"
+
+                # Alert if cooldown period passed (1 hour)
+                elif time_diff_minutes >= ALERT_COOLDOWN_MINUTES:
+                    should_alert = True
+                    reason = "COOLDOWN_EXPIRED"
+
+            if should_alert:
+                # Send alert
+                message = format_alert_message(instrument, data)
+                success = telegram.send_message(message)
+
+                if success:
+                    # Update alert history
+                    alert_history[instrument] = {
+                        'signal': signal,
+                        'confidence': confidence,
+                        'timestamp': current_time
+                    }
+                    print(f"[ALERT] {instrument}: {signal} {confidence}% ({reason})")
+            else:
+                print(f"[SKIP] {instrument}: {signal} {confidence}% (already alerted)")
 
 def format_alert_message(instrument, data):
     """Format Telegram alert message"""
