@@ -189,8 +189,15 @@ class V3ForexScreener:
                 print(f"  ✗ {pair}: ERROR - {str(e)}")
 
         # Scan yfinance instruments
-        for yf_symbol, standard_symbol, name in YFINANCE_INSTRUMENTS:
+        for item in YFINANCE_INSTRUMENTS:
             try:
+                # Unpack the instrument tuple
+                if len(item) == 3:
+                    yf_symbol, standard_symbol, name = item
+                else:
+                    print(f"  ✗ ERROR: Invalid instrument tuple: {item}")
+                    continue
+
                 results = self.analyze_instrument(yf_symbol, source='yfinance')
                 results['instrument'] = standard_symbol  # Use standard symbol
                 all_results[standard_symbol] = results
@@ -203,7 +210,9 @@ class V3ForexScreener:
                 print(f"  ✓ {standard_symbol}: {signal} ({strategy}, {confidence}% confidence)")
 
             except Exception as e:
-                print(f"  ✗ {standard_symbol}: ERROR - {str(e)}")
+                import traceback
+                print(f"  ✗ {standard_symbol if 'standard_symbol' in locals() else 'UNKNOWN'}: ERROR - {str(e)}")
+                traceback.print_exc()
 
         print("\n" + "=" * 80)
         print(f"Scan complete! Analyzed {len(all_results)} instruments")

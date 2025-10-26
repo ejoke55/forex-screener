@@ -141,7 +141,21 @@ def index():
 @app.route('/api/results')
 def get_results():
     """API endpoint to get latest screener results"""
-    return jsonify(latest_results)
+    # Remove DataFrames from results before serializing to JSON
+    clean_results = {
+        'screener_results': {},
+        'news': latest_results.get('news', {}),
+        'last_update': latest_results.get('last_update'),
+        'scanning': latest_results.get('scanning', False),
+        'scan_count': latest_results.get('scan_count', 0)
+    }
+
+    # Copy screener results without data_dict (which contains DataFrames)
+    for instrument, data in latest_results.get('screener_results', {}).items():
+        clean_data = {k: v for k, v in data.items() if k != 'data_dict'}
+        clean_results['screener_results'][instrument] = clean_data
+
+    return jsonify(clean_results)
 
 @app.route('/api/instrument/<instrument>')
 def get_instrument_details(instrument):
@@ -151,7 +165,9 @@ def get_instrument_details(instrument):
     if not results:
         return jsonify({'error': 'Instrument not found'}), 404
 
-    return jsonify(results)
+    # Remove data_dict (DataFrames) before serializing
+    clean_results = {k: v for k, v in results.items() if k != 'data_dict'}
+    return jsonify(clean_results)
 
 @app.route('/api/news')
 def get_news():
