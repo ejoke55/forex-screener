@@ -43,13 +43,14 @@ SUPERTREND_CONFIG = {
     'enabled': True,       # Set to False to completely disable
 }
 
-# Confidence Scoring Weights
+# Confidence Scoring Weights (Total = 100 points)
+# Prioritizes core timeframes: M15, H1, H4 (M5 and D1 for context only)
 CONFIDENCE_WEIGHTS = {
-    'timeframe_alignment': 30,    # 30 points for timeframe alignment
-    'ma_convergence': 25,         # 25 points for MA signal convergence
-    'trend_strength': 20,         # 20 points for strong trend (ADX)
+    'timeframe_alignment': 40,    # 40 points for M15/H1/H4 weighted alignment
+    'ma_convergence': 15,         # 15 points for MA signal convergence
+    'trend_strength': 15,         # 15 points for ADX trend strength
     'volatility_check': 15,       # 15 points for favorable volatility
-    'historical_win_rate': 10,    # 10 points for strategy win rate
+    'historical_win_rate': 15,    # 15 points for strategy win rate
 }
 
 # Minimum confidence threshold for alerts

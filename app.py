@@ -28,10 +28,10 @@ latest_results = {
     'scan_count': 0
 }
 
-# Alert tracking to prevent spam
-# Format: {instrument: {'signal': 'BUY', 'confidence': 75, 'timestamp': datetime}}
+# Alert tracking - Send ONLY ONCE per signal direction
+# Format: {instrument: 'BUY' or 'SELL'} - tracks last alerted signal
+# Never re-alert same direction, only alert on direction change
 alert_history = {}
-ALERT_COOLDOWN_MINUTES = 60  # Only re-alert same signal after 1 hour
 
 # Initialize components
 screener = V3ForexScreener()
@@ -67,10 +67,10 @@ def background_scanner():
 
             latest_results['scanning'] = False
 
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Scan complete! Next scan in 5 minutes...")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Scan complete! Next scan in 15 minutes...")
 
-            # Wait 5 minutes
-            time.sleep(300)
+            # Wait 15 minutes
+            time.sleep(900)
 
         except Exception as e:
             print(f"[ERROR] Background scan failed: {str(e)}")
@@ -80,60 +80,51 @@ def background_scanner():
             time.sleep(60)  # Wait 1 minute before retry
 
 def send_high_confidence_alerts(results):
-    """Send Telegram alerts for signals above confidence threshold (with deduplication)"""
-    current_time = datetime.now()
-
+    """
+    Send Telegram alerts for signals above confidence threshold
+    Option C: Alert ONLY on BUY/SELL changes, ignore NEUTRAL
+    Send each signal direction ONLY ONCE (never repeat)
+    """
     for instrument, data in results.items():
         confidence = data.get('best_confidence', 0)
         signal = data.get('overall_signal', 'NEUTRAL')
 
-        # Only alert on BUY/SELL signals above confidence threshold
-        if confidence >= MIN_CONFIDENCE_THRESHOLD and ('BUY' in signal or 'SELL' in signal):
+        # Normalize signal to BUY, SELL, or NEUTRAL
+        if 'BUY' in signal:
+            signal_direction = 'BUY'
+        elif 'SELL' in signal:
+            signal_direction = 'SELL'
+        else:
+            signal_direction = 'NEUTRAL'
 
-            # Check if we should send alert (avoid spam)
-            should_alert = False
+        # Only process BUY/SELL signals above confidence threshold
+        if confidence >= MIN_CONFIDENCE_THRESHOLD and signal_direction in ['BUY', 'SELL']:
 
-            if instrument not in alert_history:
-                # First time seeing this instrument - send alert
-                should_alert = True
-                reason = "NEW"
-            else:
-                last_alert = alert_history[instrument]
-                last_signal = last_alert['signal']
-                last_confidence = last_alert['confidence']
-                last_time = last_alert['timestamp']
-                time_diff_minutes = (current_time - last_time).total_seconds() / 60
+            # Check if we've already alerted this direction
+            last_alerted_direction = alert_history.get(instrument)
 
-                # Alert if signal changed (BUY → SELL or vice versa)
-                if signal != last_signal:
-                    should_alert = True
-                    reason = "SIGNAL_CHANGE"
-
-                # Alert if confidence increased significantly (+15% or more)
-                elif confidence >= last_confidence + 15:
-                    should_alert = True
-                    reason = "CONFIDENCE_BOOST"
-
-                # Alert if cooldown period passed (1 hour)
-                elif time_diff_minutes >= ALERT_COOLDOWN_MINUTES:
-                    should_alert = True
-                    reason = "COOLDOWN_EXPIRED"
-
-            if should_alert:
-                # Send alert
+            if last_alerted_direction != signal_direction:
+                # Signal changed direction (or first time) - send alert!
                 message = format_alert_message(instrument, data)
                 success = telegram.send_message(message)
 
                 if success:
                     # Update alert history
-                    alert_history[instrument] = {
-                        'signal': signal,
-                        'confidence': confidence,
-                        'timestamp': current_time
-                    }
-                    print(f"[ALERT] {instrument}: {signal} {confidence}% ({reason})")
+                    alert_history[instrument] = signal_direction
+
+                    if last_alerted_direction:
+                        print(f"[ALERT] {instrument}: {signal_direction} {confidence}% (changed from {last_alerted_direction})")
+                    else:
+                        print(f"[ALERT] {instrument}: {signal_direction} {confidence}% (NEW)")
             else:
-                print(f"[SKIP] {instrument}: {signal} {confidence}% (already alerted)")
+                # Same direction as last alert - skip
+                print(f"[SKIP] {instrument}: {signal_direction} {confidence}% (already alerted)")
+
+        # If signal is NEUTRAL or below threshold, just track it (no alert)
+        elif signal_direction == 'NEUTRAL':
+            # Don't alert on NEUTRAL, but log it
+            if instrument in alert_history:
+                print(f"[INFO] {instrument}: NEUTRAL (was {alert_history[instrument]})")
 
 def format_alert_message(instrument, data):
     """Format Telegram alert message"""
