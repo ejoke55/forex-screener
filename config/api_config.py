@@ -18,7 +18,7 @@ OANDA_MAX_CONCURRENT = 20
 YFINANCE_RATE_LIMIT = 2  # requests per second (conservative)
 
 # Screener Settings
-SCAN_INTERVAL = 300  # seconds (5 minutes)
+SCAN_INTERVAL = 900  # seconds (15 minutes)
 REQUEST_DELAY = 0.1  # seconds between requests (to be safe)
 
 # Candle count for calculations (increased for 200 SMA)
