@@ -79,12 +79,13 @@ class SMAStrategy:
         Calculate SMMA trend based on alignment
 
         Returns:
-            tuple: (trend, adx_strength)
+            tuple: (trend, adx_strength, adx_val)
                 trend: 1 for uptrend, -1 for downtrend, 0 for mixed
                 adx_strength: 'STRONG', 'MODERATE', 'WEAK', or 'N/A'
+                adx_val: ADX numeric value or None
         """
         if df is None or len(df) < self.slow_sma:
-            return 0, 'N/A'
+            return 0, 'N/A', None
 
         df = df.copy()
 
