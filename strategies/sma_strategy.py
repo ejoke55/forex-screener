@@ -1,6 +1,6 @@
 """
-SMA (Simple Moving Average) Multi-Timeframe Strategy for V3
-Converted from EMA to SMA with 20, 50, 200 SMAs
+SMMA (Smoothed Moving Average) Multi-Timeframe Strategy for V3
+Using 20, 50, 200 Smoothed Moving Averages (SMMA/RMA)
 """
 import pandas as pd
 import numpy as np
@@ -21,8 +21,25 @@ class SMAStrategy:
         self.adx_strong = adx_strong or SMA_CONFIG['adx_strong']
 
     def calculate_sma(self, df, period):
-        """Calculate Simple Moving Average"""
-        return df['close'].rolling(window=period).mean()
+        """Calculate Smoothed Moving Average (SMMA/RMA)
+
+        SMMA formula:
+        - First value: Simple average of first N values
+        - Subsequent: SMMA = (SMMA_prev * (N-1) + Current_Price) / N
+
+        This provides smoother trends than SMA, similar to Wilder's smoothing.
+        """
+        close = df['close']
+        smma = pd.Series(index=close.index, dtype=float)
+
+        # First SMMA value is simple average of first N values
+        smma.iloc[period - 1] = close.iloc[:period].mean()
+
+        # Calculate subsequent SMMA values recursively
+        for i in range(period, len(close)):
+            smma.iloc[i] = (smma.iloc[i - 1] * (period - 1) + close.iloc[i]) / period
+
+        return smma
 
     def calculate_adx(self, df, period=14):
         """Calculate ADX (Average Directional Index)"""
@@ -59,19 +76,20 @@ class SMAStrategy:
 
     def calculate_sma_trend(self, df):
         """
-        Calculate SMA trend based on alignment
+        Calculate SMMA trend based on alignment
 
         Returns:
-            tuple: (trend, adx_strength)
+            tuple: (trend, adx_strength, adx_val)
                 trend: 1 for uptrend, -1 for downtrend, 0 for mixed
                 adx_strength: 'STRONG', 'MODERATE', 'WEAK', or 'N/A'
+                adx_val: ADX numeric value or None
         """
         if df is None or len(df) < self.slow_sma:
-            return 0, 'N/A'
+            return 0, 'N/A', None
 
         df = df.copy()
 
-        # Calculate SMAs
+        # Calculate SMMAs (20, 50, 200 Smoothed Moving Averages)
         sma_fast = self.calculate_sma(df, self.fast_sma)
         sma_medium = self.calculate_sma(df, self.medium_sma)
         sma_slow = self.calculate_sma(df, self.slow_sma)
